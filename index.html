@@ -77,7 +77,7 @@
         <div class="home-layout">
           <!-- LEFT CARD: PARTICIPANT SIGN UP -->
           <div class="card signup-card">
-            <h2 class="card-title">Participant Sign Up</h2>
+            <h2 class="card-title">Admin Sign Up</h2>
             <form id="participant-signup-form">
               <div class="form-row">
                 <div class="form-group">
@@ -315,7 +315,7 @@
       <section id="admin-dashboard-view" class="view">
         <div class="dashboard-top">
           <h2>Admin Dashboard</h2>
-          <div>
+          <div class="admin-btn">
             <button
               class="btn btn-coral"
               onclick="showView('create-event-view')"
@@ -323,7 +323,7 @@
               + Create Event
             </button>
             <button
-              class="btn btn-login"
+              class="btn btn-login btn-logout"
               style="color: var(--text-dark); border-color: var(--text-dark)"
               onclick="logoutAdmin()"
             >

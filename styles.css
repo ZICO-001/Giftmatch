@@ -123,7 +123,10 @@ body {
   border-radius: 25px;
   font-size: 1rem;
 }
-
+.btn-style {
+  right: 0px;
+  margin: 0px 0px 10px 20px;
+}
 .btn-navy {
   background-color: var(--navy-btn);
   color: white;
@@ -394,7 +397,7 @@ body {
 
 @media (max-width: 478px) {
   .hero-background {
-    min-height: 45vh;
+    min-height: 35vh;
     border-bottom-left-radius: 30px;
     border-bottom-right-radius: 30px;
   }
@@ -404,5 +407,18 @@ body {
   .form-row {
     flex-direction: column;
     gap: 0;
+  }
+  .dashboard-top h2 {
+    width: 150px;
+  }
+  .btn-logout {
+    margin-top: 10px;
+    width: 100px;
+  }
+  .admin-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
 }

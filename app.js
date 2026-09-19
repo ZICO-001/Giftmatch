@@ -216,7 +216,7 @@ async function loadAdminEvents() {
           <p class="subtext">Dates: ${new Date(ev.startDate).toLocaleDateString()} - ${new Date(ev.deadline).toLocaleDateString()}</p>
         </div>
         <div>
-          <button class="btn btn-navy btn-sm" onclick="viewEventDetails('${ev.id}')">View Results</button>
+          <button class="btn btn-navy btn-sm btn-style" onclick="viewEventDetails('${ev.id}')">View Results</button>
           <button class="btn btn-coral btn-sm" onclick="copyEventLink('${ev.id}')">Copy Share Link</button>
         </div>
       </div>
@@ -278,69 +278,87 @@ async function viewEventDetails(eventId) {
 
   if (res.ok) {
     const section = document.getElementById("event-details-section");
-    section.style.display = "block";
+    if (section) section.style.display = "block";
 
-    document.getElementById("active-event-title").innerText =
-      `${res.data.eventTitle} (${res.data.status})`;
-    document.getElementById("event-summary-stats").innerHTML = `
-      <p>Total Participants: ${res.data.summary.totalParticipants} | Picked: ${res.data.summary.totalPicked} | Remaining: ${res.data.summary.remaining}</p>
-    `;
-
-    // Render Table
-    const tableBody = document.getElementById("pairings-table");
-    if (res.data.summary.picks.length > 0) {
-      tableBody.innerHTML = res.data.summary.picks
-        .map(
-          (p) => `
-        <tr>
-          <td>${p.pickerName}</td>
-          <td>${p.pickedName}</td>
-        </tr>
-      `,
-        )
-        .join("");
-    } else {
-      tableBody.innerHTML =
-        '<tr><td colspan="2">No picks recorded yet.</td></tr>';
+    const titleEl = document.getElementById("active-event-title");
+    if (titleEl) {
+      titleEl.innerText = `${res.data?.eventTitle || "Event"} (${res.data?.status || "Active"})`;
     }
 
-    // Special Requests
+    const statsEl = document.getElementById("event-summary-stats");
+    if (statsEl) {
+      const total = res.data?.summary?.totalParticipants ?? "N/A";
+      const picked = res.data?.summary?.totalPicked ?? "N/A";
+      const remaining = res.data?.summary?.remaining ?? "N/A";
+      statsEl.innerHTML = `<p>Total Participants: ${total} | Picked: ${picked} | Remaining: ${remaining}</p>`;
+    }
+
+    // --- 1. Render Table ---
+    const tableBody = document.getElementById("pairings-table");
+    const picksList = res.data?.summary?.picks || res.data?.picks || [];
+
+    if (tableBody) {
+      if (picksList.length > 0) {
+        tableBody.innerHTML = picksList
+          .map(
+            (p) => `
+        <tr>
+          <td>${p.pickerName || p.picker || "N/A"}</td>
+          <td>${p.pickedName || p.picked || "N/A"}</td>
+        </tr>
+      `,
+          )
+          .join("");
+      } else {
+        tableBody.innerHTML =
+          '<tr><td colspan="2">No picks recorded yet.</td></tr>';
+      }
+    }
+
+    // --- 2. Render Special Requests ---
     const reqContainer = document.getElementById("admin-special-requests");
-    if (
-      res.data.summary.specialRequests &&
-      res.data.summary.specialRequests.length > 0
-    ) {
-      reqContainer.innerHTML = res.data.summary.specialRequests
-        .map(
-          (r) => `
+
+    if (reqContainer) {
+      // Check all potential keys where the backend might place special requests
+      const requestsList =
+        res.data?.summary?.specialRequests ||
+        res.data?.specialRequests ||
+        res.data?.requests ||
+        [];
+
+      if (requestsList.length > 0) {
+        reqContainer.innerHTML = requestsList
+          .map(
+            (r) => `
         <div class="request-item">
-          <p><strong>From:</strong> ${r.name} (${r.phone})</p>
-          <p><strong>Wants to Gift:</strong> ${r.wantToGift}</p>
-          <p><strong>Note:</strong> ${r.description}</p>
+          <p><strong>From:</strong> ${r.name || r.pickerName || "N/A"} (${r.phone || r.phoneNo || "N/A"})</p>
+          <p><strong>Email:</strong> ${r.emailAdd || r.email || "N/A"}</p>
+          <p><strong>Wants to Gift:</strong> ${r.wantToGift || r.target || "N/A"}</p>
+          <p><strong>Note:</strong> ${r.description || r.reason || "N/A"}</p>
         </div>
       `,
-        )
-        .join("");
-    } else {
-      reqContainer.innerHTML = '<p class="subtext">No special requests.</p>';
+          )
+          .join("");
+      } else {
+        reqContainer.innerHTML = '<p class="subtext">No special requests.</p>';
+      }
     }
   } else {
     alert(`Could not fetch event results: ${res.message}`);
   }
 }
-
 // 6. PARTICIPANT PICKING FLOW
-
 // Step 1: Select Participant
 async function handleParticipantSelection() {
   const dropdown = document.getElementById("participant-dropdown");
-  const selectedName = dropdown.value;
+  const selectedName = dropdown?.value;
 
   if (!selectedName) {
     alert("Please select your name.");
     return;
   }
 
+  // Set the selected name first
   state.pickerName = selectedName;
 
   const res = await apiCall(`/pick/${state.currentEventId}`, "POST", {
@@ -348,8 +366,49 @@ async function handleParticipantSelection() {
   });
 
   if (res.ok) {
-    state.eventParticipants = res.data.participants || [];
-    document.getElementById("active-user-name").innerText = selectedName;
+    // Check all potential backend keys for participant list
+    let rawParticipants =
+      res.data.participants ||
+      res.data.eventParticipants ||
+      res.data.data ||
+      res.data ||
+      [];
+
+    // Parse comma-separated strings if returned in string format
+    if (typeof rawParticipants === "string") {
+      rawParticipants = rawParticipants
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0);
+    }
+
+    // Standardize every participant into an object { id, name, isPicked }
+    state.eventParticipants = Array.isArray(rawParticipants)
+      ? rawParticipants.map((p, index) => {
+          if (typeof p === "string") {
+            return { id: index + 1, name: p, isPicked: false };
+          }
+          return {
+            id: p.id || p._id || index + 1,
+            name: p.name || p.pickerName || p.fullName || "",
+            isPicked: Boolean(p.isPicked),
+          };
+        })
+      : [];
+
+    // NOW that state.eventParticipants has proper objects and IDs, locate the selected picker:
+    const selectedParticipant = state.eventParticipants.find(
+      (p) => p.name === selectedName,
+    );
+
+    // Set state.pickerId using the mapped ID from the response (or option dataset fallback)
+    const selectedOption = dropdown.options[dropdown.selectedIndex];
+    state.pickerId =
+      selectedParticipant?.id || selectedOption?.dataset?.id || selectedName;
+
+    const activeUserLabel = document.getElementById("active-user-name");
+    if (activeUserLabel) activeUserLabel.innerText = selectedName;
+
     renderPickingGrid();
     showView("participant-picking-view");
   } else {
@@ -360,11 +419,20 @@ async function handleParticipantSelection() {
 
 function renderPickingGrid() {
   const container = document.getElementById("picking-cards-container");
+  if (!container) return;
   container.innerHTML = "";
+
+  if (state.eventParticipants.length === 0) {
+    container.innerHTML =
+      '<p class="subtext">No available participants found to pick.</p>';
+    return;
+  }
 
   state.eventParticipants.forEach((person) => {
     // Cannot pick self
     if (person.name === state.pickerName) return;
+    // Ensure person.id is a valid integer fallback if backend didn't supply one
+    const validId = parseInt(person.id, 10) || index + 1;
 
     const card = document.createElement("div");
     card.className = `picker-card ${person.isPicked ? "disabled" : ""}`;
@@ -378,7 +446,7 @@ function renderPickingGrid() {
       <button 
         class="btn ${person.isPicked ? "btn-navy" : "btn-coral"} btn-block" 
         ${person.isPicked ? "disabled" : ""} 
-        onclick="submitPick(${person.id}, '${person.name}')">
+        onclick="submitPick('${person.id}', '${person.name}')">
         ${person.isPicked ? "Unavailable" : "Pick"}
       </button>
     `;
@@ -386,23 +454,44 @@ function renderPickingGrid() {
     container.appendChild(card);
   });
 }
-
 // Step 2: Make Pick
 async function submitPick(targetId, targetName) {
-  const res = await apiCall(`/pick/make/${state.currentEventId}`, "POST", {
-    pickerName: state.pickerName,
-    pickedParticipantId: targetId,
-    pickedName: targetName,
-  });
+  const pickerIdentifier = state.pickerId || state.pickerName;
+  if (!pickerIdentifier) {
+    alert("Picker name/ID is missing. Please select your name again.");
+    return;
+  }
+
+  // Convert targetId to a valid integer required by backend validation schema
+  const numericTargetId = parseInt(targetId, 10);
+
+  if (isNaN(numericTargetId)) {
+    alert("Target participant ID is invalid. Please refresh and try again.");
+    return;
+  }
+
+  const res = await apiCall(
+    `/pick/make/${state.currentEventId}/${encodeURIComponent(pickerIdentifier)}`,
+    "POST",
+    {
+      pickedParticipantId: numericTargetId, // Key expected by backend schema validator
+      pickedParticipant: numericTargetId, // Key fallback
+      pickedName: targetName,
+    },
+  );
+
+  console.log("PICK SELECTION RESPONSE:", res);
 
   if (res.ok) {
-    document.getElementById("picked-target-name").innerText = targetName;
+    const targetLabel = document.getElementById("picked-target-name");
+    if (targetLabel) targetLabel.innerText = targetName;
     showView("already-picked-view");
   } else {
-    alert(`Selection Failed: ${res.message}`);
+    alert(
+      `Selection Failed: ${res.message || "Server error (" + res.status + ")"}`,
+    );
   }
 }
-
 // Submit Special Request
 document
   .getElementById("special-request-form")
@@ -437,7 +526,6 @@ document
       alert(`Failed to send request: ${res.message}`);
     }
   });
-
 // 7. INITIALIZATION ON PAGE LOAD
 window.addEventListener("DOMContentLoaded", async () => {
   // Parse eventId from URL query parameter (e.g. ?eventId=123)
@@ -451,20 +539,46 @@ window.addEventListener("DOMContentLoaded", async () => {
     const res = await apiCall(`/event/${eventIdParam}`, "GET");
     if (res.ok) {
       document.getElementById("p-landing-event-title").innerText =
-        res.data.title;
+        res.data.title || "Secret Santa Event";
       document.getElementById("p-landing-event-desc").innerText =
         res.data.description || "Select your name to continue.";
 
       const dropdown = document.getElementById("participant-dropdown");
-      dropdown.innerHTML = '<option value="">-- Choose Your Name --</option>';
+      if (!dropdown) return;
 
-      if (Array.isArray(res.data.participants)) {
-        res.data.participants.forEach((p) => {
-          dropdown.innerHTML += `<option value="${p.name}">${p.name}</option>`;
-        });
+      let rawParticipants = res.data.participants || [];
+      let participantNames = [];
+
+      // Handle String vs Array structures from backend
+      if (typeof rawParticipants === "string") {
+        // "Access, john, ade, shola" -> ["Access", "john", "ade", "shola"]
+        participantNames = rawParticipants
+          .split(",")
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0);
+      } else if (Array.isArray(rawParticipants)) {
+        // Handles array of strings OR array of objects [{ name: "Access" }]
+        participantNames = rawParticipants.map((p) =>
+          typeof p === "string" ? p : p.name,
+        );
+      }
+
+      // Populate dropdown cleanly
+      if (participantNames.length > 0) {
+        const optionsHtml = participantNames
+          .map((name) => `<option value="${name}">${name}</option>`)
+          .join("");
+
+        dropdown.innerHTML =
+          '<option value="">-- Choose Your Name --</option>' + optionsHtml;
+      } else {
+        dropdown.innerHTML =
+          '<option value="">No participants found for this event</option>';
       }
 
       showView("participant-landing-view");
+    } else {
+      alert(`Could not load event: ${res.message}`);
     }
   }
 });
