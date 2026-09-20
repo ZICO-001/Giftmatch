@@ -28,7 +28,7 @@ body {
 /* TOP GREEN HERO SECTION */
 .hero-background {
   background-color: var(--green-bg);
-  min-height: 55vh;
+  min-height: 50vh;
   width: 100%;
   position: absolute;
   top: 0;
@@ -339,7 +339,7 @@ body {
    RESPONSIVE BREAKPOINTS WITH MOBILE DROPDOWN MENU
    ==================================================== */
 
-@media (max-width: 768px) {
+@media (min-width: 479px) and (max-width: 768px) {
   .navbar {
     padding: 1rem 1.5rem;
   }
@@ -393,16 +393,86 @@ body {
     width: 100%;
     max-width: 100%;
   }
+  .card {
+    padding: 1rem;
+  }
+
+  .event_action {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 478px) {
+  .navbar {
+    padding: 1rem 1.5rem;
+  }
+  .hero-background {
+    min-height: 30vh;
+    border-bottom-left-radius: 25px;
+    border-bottom-right-radius: 25px;
+  }
+
+  .nav-toggle {
+    display: block; /* Show hamburger icon */
+  }
+
+  /* DROPDOWN MENU FOR MOBILE */
+  .nav-menu {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: var(--green-bg);
+    flex-direction: column;
+    padding: 1.5rem;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    gap: 1.2rem;
+    z-index: 100;
+  }
+
+  .nav-menu.active {
+    display: flex; /* Drop down from top when active */
+  }
+
+  .nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .nav-links a {
+    margin: 0;
+  }
+
+  .nav-auth {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .home-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .signup-card,
+  .events-card {
+    width: 100%;
+    max-width: 100%;
+  }
   .hero-background {
     min-height: 35vh;
     border-bottom-left-radius: 30px;
     border-bottom-right-radius: 30px;
   }
   .card {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+  .event_action {
+    margin-left: 45px;
   }
   .form-row {
     flex-direction: column;
@@ -411,6 +481,7 @@ body {
   .dashboard-top h2 {
     width: 150px;
   }
+
   .btn-logout {
     margin-top: 10px;
     width: 100px;

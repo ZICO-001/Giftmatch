@@ -215,7 +215,7 @@ async function loadAdminEvents() {
           <strong>${ev.title}</strong>
           <p class="subtext">Dates: ${new Date(ev.startDate).toLocaleDateString()} - ${new Date(ev.deadline).toLocaleDateString()}</p>
         </div>
-        <div>
+        <div class="event_action">
           <button class="btn btn-navy btn-sm btn-style" onclick="viewEventDetails('${ev.id}')">View Results</button>
           <button class="btn btn-coral btn-sm" onclick="copyEventLink('${ev.id}')">Copy Share Link</button>
         </div>
