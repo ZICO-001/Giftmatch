@@ -396,6 +396,9 @@ body {
   .card {
     padding: 1rem;
   }
+  .dashboard-top {
+    margin-top: 80px;
+  }
 
   .event_action {
     display: flex;
